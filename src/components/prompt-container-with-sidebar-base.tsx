@@ -29,7 +29,7 @@ export default function Component() {
           <div className="mt-auto flex max-w-full flex-col gap-2">
             <PromptInputWithBottomActions />
             <p className="text-tiny text-default-400 px-2">
-              Acme AI can make mistakes. Consider checking important information.
+              BRRRR AI can make mistakes. Consider checking important information.
             </p>
           </div>
         </div>

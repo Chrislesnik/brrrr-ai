@@ -54,8 +54,8 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
       <p>
         Something went wrong, if the issue persists please contact us through our help center
         at&nbsp;
-        <Link href="mailto:support@acmeai.com" size="sm">
-          support@acmeai.com
+        <Link href="mailto:support@brrrr.ai" size="sm">
+          support@brrrr.ai
         </Link>
       </p>
     );

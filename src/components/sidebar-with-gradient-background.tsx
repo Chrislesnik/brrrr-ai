@@ -6,7 +6,7 @@ import {Icon} from "@iconify/react";
 
 import Sidebar from "./sidebar";
 
-import {AcmeIcon} from "./acme";
+import {BRRRRIcon} from "./acme";
 import {sectionItemsWithTeams} from "./sidebar-items";
 import SidebarDrawer from "./sidebar-drawer";
 
@@ -38,9 +38,9 @@ export default function Component({
     <div className="from-red-500/20 via-orange-500/20 to-yellow-500/20 relative flex h-full w-72 flex-1 flex-col bg-linear-to-b p-6 min-h-0 overflow-hidden">
       <div className="flex items-center gap-2 px-2">
         <div className="border-small border-foreground/20 flex h-8 w-8 items-center justify-center rounded-full">
-          <AcmeIcon className="text-foreground" />
+          <BRRRRIcon className="text-foreground" />
         </div>
-        <span className="text-small text-foreground font-medium uppercase">Acme</span>
+        <span className="text-small text-foreground font-medium uppercase">BRRRR</span>
       </div>
 
       <Spacer y={8} />
