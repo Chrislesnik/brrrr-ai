@@ -1,7 +1,7 @@
 import React from "react";
 import PromptContainerWithSidebarBase from "./components/prompt-container-with-sidebar-base";
 import AuthPage from "./components/auth-page";
-import {supabase} from "./lib/supabase";
+import {supabase, verifySupabaseConnectivity} from "./lib/supabase";
 import {ChatProvider} from "./components/chat-context";
 
 export default function App() {
@@ -11,6 +11,7 @@ export default function App() {
 
   // Handle Supabase email magic link / OAuth callback by exchanging the code for a session
   React.useEffect(() => {
+    verifySupabaseConnectivity();
     const url = new URL(window.location.href);
     const code = url.searchParams.get("code");
     const error = url.searchParams.get("error");
