@@ -6,8 +6,11 @@ import {Icon} from "@iconify/react";
 import {cn} from "@heroui/react";
 
 import PromptInput from "./prompt-input";
+import {supabase} from "../lib/supabase";
+import {useChat} from "./chat-context";
 
 export default function Component() {
+  const {selectedConversationId, setSelectedConversationId, refreshConversations} = useChat();
   const actions = [
     {label: "Draft an email", icon: "gravity-ui:mail"},
     {label: "Create an image", icon: "gravity-ui:image"},
@@ -19,6 +22,53 @@ export default function Component() {
   ];
 
   const [prompt, setPrompt] = React.useState<string>("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prompt) return;
+    const {data: session} = await supabase.auth.getSession();
+    const userId = session.session?.user?.id;
+    if (!userId) return;
+    let conversationId = selectedConversationId;
+    if (!conversationId) {
+      const {data: conv, error: convErr} = await supabase
+        .from("chat_conversations")
+        .insert({owner_user_id: userId, name: "New Channel"})
+        .select("id")
+        .single();
+      if (convErr) return;
+      conversationId = conv?.id as string;
+      await refreshConversations();
+      setSelectedConversationId(conversationId);
+    }
+    await supabase.from("chat_messages").insert({
+      conversation_id: conversationId,
+      author_user_id: userId,
+      role: "user",
+      content: prompt,
+    });
+    setPrompt("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      // Submit the form programmatically
+      if (!selectedConversationId || !prompt) return;
+      (async () => {
+        const {data: session} = await supabase.auth.getSession();
+        const userId = session.session?.user?.id;
+        if (!userId) return;
+        await supabase.from("chat_messages").insert({
+          conversation_id: selectedConversationId,
+          author_user_id: userId,
+          role: "user",
+          content: prompt,
+        });
+        setPrompt("");
+      })();
+    }
+  };
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -38,13 +88,14 @@ export default function Component() {
           ))}
         </div>
       </ScrollShadow>
-      <form className="rounded-medium bg-default-100 hover:bg-default-200/70 flex w-full flex-col items-start transition-colors">
+      <form onSubmit={handleSubmit} className="rounded-medium bg-default-100 hover:bg-default-200/70 flex w-full flex-col items-start transition-colors">
         <PromptInput
           classNames={{
             inputWrapper: "bg-transparent! shadow-none",
             innerWrapper: "relative",
             input: "pt-1 pl-2 pb-6 pr-10! text-medium",
           }}
+          onKeyDown={handleKeyDown}
           endContent={
             <div className="flex items-end gap-2">
               <Tooltip showArrow content="Send message">
@@ -55,6 +106,7 @@ export default function Component() {
                   radius="lg"
                   size="sm"
                   variant="solid"
+                  type="submit"
                 >
                   <Icon
                     className={cn(

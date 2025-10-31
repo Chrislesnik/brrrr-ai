@@ -3,7 +3,7 @@
 import React from "react";
 import {ScrollShadow, Tab, Tabs} from "@heroui/react";
 
-import Conversation from "./conversation";
+import DbConversation from "./db-conversation";
 import PromptInputWithBottomActions from "./prompt-input-with-bottom-actions";
 
 import SidebarContainer from "./sidebar-with-gradient-background";
@@ -23,8 +23,7 @@ export default function Component() {
       >
         <div className="relative flex h-full min-h-0 overflow-hidden flex-col">
           <ScrollShadow className="flex flex-1 min-h-0 flex-col gap-6 overflow-y-auto pb-8">
-            <Conversation />
-            <Conversation />
+            <DbConversation />
           </ScrollShadow>
           <div className="mt-auto flex max-w-full flex-col gap-2">
             <PromptInputWithBottomActions />

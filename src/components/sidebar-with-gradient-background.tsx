@@ -5,9 +5,10 @@ import {Avatar, Button, ScrollShadow, Spacer, Input, useDisclosure} from "@herou
 import {Icon} from "@iconify/react";
 
 import Sidebar from "./sidebar";
+import {useChat} from "./chat-context";
+import {supabase} from "../lib/supabase";
 
 import {BRRRRIcon} from "./acme";
-import {sectionItemsWithTeams} from "./sidebar-items";
 import SidebarDrawer from "./sidebar-drawer";
 
 /**
@@ -33,6 +34,44 @@ export default function Component({
   title?: string;
 }) {
   const {isOpen, onOpen, onOpenChange} = useDisclosure();
+  const {conversations, setSelectedConversationId, refreshConversations} = useChat();
+
+  const getSidebarItems = React.useCallback(() => {
+    return [
+      {
+        key: "channels",
+        title: "Channels",
+        items: conversations.map((c) => ({key: c.id, title: c.name})),
+      },
+    ];
+  }, [conversations]);
+
+  const onSelectConversation = React.useCallback(
+    (key: string) => {
+      setSelectedConversationId(key);
+    },
+    [setSelectedConversationId],
+  );
+
+  const onCreateChannel = React.useCallback(async () => {
+    const name = "New Channel";
+    const {data: session} = await supabase.auth.getSession();
+    const userId = session.session?.user?.id;
+    if (!userId) return;
+    const {data, error} = await supabase
+      .from("chat_conversations")
+      .insert({owner_user_id: userId, name})
+      .select("id")
+      .single();
+    if (!error && data) {
+      await refreshConversations();
+      setSelectedConversationId(data.id);
+    }
+  }, [refreshConversations, setSelectedConversationId]);
+
+  const onLogout = React.useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
 
   const content = (
     <div className="from-red-500/20 via-orange-500/20 to-yellow-500/20 relative flex h-full w-72 flex-1 flex-col bg-linear-to-b p-6 min-h-0 overflow-hidden">
@@ -74,7 +113,14 @@ export default function Component({
         />
       </div>
 
-      <ScrollShadow className="-mr-6 h-full max-h-[60vh] py-6 pr-6">
+      <div className="px-2 pt-4">
+        <Button size="sm" variant="flat" onPress={onCreateChannel}>
+          <Icon className="text-default-600" icon="solar:add-circle-line-duotone" width={20} />
+          <span className="ml-1">New Channel</span>
+        </Button>
+      </div>
+
+      <ScrollShadow className="-mr-6 h-full max-h-[60vh] py-4 pr-6">
         <Sidebar
           defaultSelectedKey="home"
           iconClassName="text-default-600 group-data-[selected=true]:text-foreground"
@@ -82,11 +128,12 @@ export default function Component({
             base: "data-[selected=true]:bg-default-400/20 data-[hover=true]:bg-default-400/10",
             title: "text-default-600 group-data-[selected=true]:text-foreground",
           }}
-          items={sectionItemsWithTeams}
+          items={getSidebarItems()}
           sectionClasses={{
             heading: "text-default-600 font-medium",
           }}
           variant="flat"
+          onSelect={(key) => onSelectConversation(key)}
         />
       </ScrollShadow>
 
@@ -113,6 +160,7 @@ export default function Component({
             />
           }
           variant="light"
+          onPress={onLogout}
         >
           Log Out
         </Button>
