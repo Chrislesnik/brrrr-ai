@@ -85,7 +85,16 @@ export default function Component({
   }, [refreshConversations, setSelectedConversationId]);
 
   const onLogout = React.useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      console.log("[auth] logout start");
+      await supabase.auth.signOut();
+      console.log("[auth] logout done");
+    } catch (err) {
+      console.error("[auth] logout failed", err);
+    } finally {
+      // Force UI to show AuthPage immediately
+      window.location.replace(window.location.origin);
+    }
   }, []);
 
   const content = (
@@ -179,6 +188,7 @@ export default function Component({
           }
           variant="light"
           onPress={onLogout}
+          onClick={onLogout}
         >
           Log Out
         </Button>
