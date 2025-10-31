@@ -72,6 +72,18 @@ export default function App() {
     };
   }, []);
 
+  // Failsafe: never stay stuck on loading if something stalls
+  React.useEffect(() => {
+    if (!loading) return;
+    const timeout = window.setTimeout(() => {
+      setLoading(false);
+      if (!isAuthed && !loadError) {
+        console.warn("Loading timeout fallback fired - showing UI without session");
+      }
+    }, 6000);
+    return () => window.clearTimeout(timeout);
+  }, [loading, isAuthed, loadError]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen text-default-500">
