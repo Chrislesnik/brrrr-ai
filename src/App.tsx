@@ -8,6 +8,33 @@ export default function App() {
   const [loading, setLoading] = React.useState(true);
   const [isAuthed, setIsAuthed] = React.useState(false);
 
+  // Handle Supabase email magic link / OAuth callback by exchanging the code for a session
+  React.useEffect(() => {
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("code");
+    const error = url.searchParams.get("error");
+    const errorDescription = url.searchParams.get("error_description");
+    if (error) {
+      // Surface in console for now; the send form now shows errors for message flow
+      // If needed we can route this to UI state later
+      console.error("Auth error:", error, errorDescription);
+    }
+    if (code) {
+      (async () => {
+        const {error: exchangeErr} = await supabase.auth.exchangeCodeForSession({code});
+        if (exchangeErr) {
+          console.error("Failed to exchange auth code:", exchangeErr.message);
+        }
+        // Clean auth params from the URL while preserving other query params (e.g. invite)
+        url.searchParams.delete("code");
+        url.searchParams.delete("type");
+        url.searchParams.delete("error");
+        url.searchParams.delete("error_description");
+        window.history.replaceState({}, document.title, url.toString());
+      })();
+    }
+  }, []);
+
   React.useEffect(() => {
     let mounted = true;
     supabase.auth.getSession().then(async ({data}) => {
