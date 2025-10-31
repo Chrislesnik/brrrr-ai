@@ -1,5 +1,6 @@
 import React from "react";
 import PromptContainerWithSidebarBase from "./components/prompt-container-with-sidebar-base";
+import EnvDebug from "./components/env-debug";
 import AuthPage from "./components/auth-page";
 import {supabase, verifySupabaseConnectivity} from "./lib/supabase";
 import {ChatProvider} from "./components/chat-context";
@@ -84,6 +85,18 @@ export default function App() {
     }, 6000);
     return () => window.clearTimeout(timeout);
   }, [loading, isAuthed, loadError]);
+
+  const showEnv = React.useMemo(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("env") === "1";
+    } catch {
+      return false;
+    }
+  }, []);
+
+  if (showEnv) {
+    return <EnvDebug />;
+  }
 
   if (loading) {
     return (

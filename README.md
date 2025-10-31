@@ -12,8 +12,9 @@ Additional references:
 Create a `.env` file in the project root with:
 
 ```
-VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SITE_URL=http://localhost:5173
 ```
 
 Then start the dev server:
@@ -29,3 +30,11 @@ https://your-app.example.com/?invite=<token-from-org_invitations>
 ```
 
 After the user signs in with the magic link, the app will automatically call `accept_invite(token)` to add them to the organization.
+
+### Example env and debug
+
+If you need to verify that envs are present in a deployed build:
+
+- Ensure the above VITE_* variables are set in Vercel (Preview/Production per your URL).
+- Redeploy with build cache disabled so Vite inlines them.
+- Open your app with `?env=1` appended to the URL to see the Env Debug page (example: `http://localhost:5173/?env=1`).

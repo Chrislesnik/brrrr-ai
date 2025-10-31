@@ -107,24 +107,15 @@ export default function AuthPage() {
   return (
     <div className="h-dvh w-full flex items-center justify-center bg-content1">
       <div className="rounded-medium border-small border-divider bg-background shadow-medium w-full max-w-md p-6">
-        <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
-          <h3 className="text-large font-semibold">Welcome to BRRRR</h3>
-          <Button color="default" variant="bordered" onPress={handleGoogle} isDisabled={loading}>
+        <form onSubmit={handleSubmit} className="flex w-full flex-col gap-5">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-2xl font-semibold tracking-tight">Sign in to BRRRR</h3>
+            <p className="text-small text-default-500">Use Google or your work email.</p>
+          </div>
+          <Button color="primary" variant="solid" onPress={handleGoogle} isDisabled={loading}>
             Continue with Google
           </Button>
-          <div className="flex items-center gap-2">
-            <div className="h-px w-full bg-default-200" />
-            <span className="text-tiny text-default-500">or use email</span>
-            <div className="h-px w-full bg-default-200" />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant={mode === "signin" ? "solid" : "bordered"} onPress={() => setMode("signin")}>
-              Sign in
-            </Button>
-            <Button size="sm" variant={mode === "signup" ? "solid" : "bordered"} onPress={() => setMode("signup")}>
-              Create account
-            </Button>
-          </div>
+          <div className="h-px w-full bg-default-200" />
           <Input
             type="email"
             label="Email"
@@ -143,6 +134,19 @@ export default function AuthPage() {
           <Button color="primary" isLoading={loading} type="submit">
             {mode === "signin" ? "Sign in" : "Create account"}
           </Button>
+          <p className="text-tiny text-default-500">
+            {mode === "signin" ? (
+              <>
+                Don’t have an account?{" "}
+                <button type="button" className="text-primary" onClick={() => setMode("signup")}>Create one</button>.
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <button type="button" className="text-primary" onClick={() => setMode("signin")}>Sign in</button>.
+              </>
+            )}
+          </p>
           {inviteAccepted && (
             <p className="text-tiny text-success-600">Invitation accepted. You now have access.</p>
           )}
