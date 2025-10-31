@@ -48,13 +48,18 @@ export default function Component() {
         setSelectedConversationId(conversationId);
       }
 
-      const {error: msgErr} = await supabase.from("chat_messages").insert({
-        conversation_id: conversationId,
-        author_user_id: userId,
-        role: "user",
-        content: prompt,
-      });
+      const {data: msgRow, error: msgErr} = await supabase
+        .from("chat_messages")
+        .insert({
+          conversation_id: conversationId,
+          author_user_id: userId,
+          role: "user",
+          content: prompt,
+        })
+        .select("id")
+        .single();
       if (msgErr) throw msgErr;
+      if (!msgRow) throw new Error("Insert returned no row");
       setPrompt("");
     } catch (err: any) {
       console.error("Send message failed:", err);
