@@ -1,12 +1,9 @@
 import {createClient, type SupabaseClient} from "@supabase/supabase-js";
 
-function getEnv(name: string): string | undefined {
-  const v = (import.meta as any)?.env?.[name];
-  return typeof v === "string" ? v.trim() : undefined;
-}
-
-const supabaseUrl = getEnv("VITE_SUPABASE_URL");
-const supabaseAnonKey = getEnv("VITE_SUPABASE_ANON_KEY");
+// IMPORTANT: Vite only inlines env vars when accessed statically like below.
+// Do not read them dynamically (e.g. via a helper) or they will be undefined in production.
+const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 // Validate env at build/runtime
 if (!supabaseUrl || !supabaseAnonKey) {
