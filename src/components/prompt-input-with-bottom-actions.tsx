@@ -22,32 +22,46 @@ export default function Component() {
   ];
 
   const [prompt, setPrompt] = React.useState<string>("");
+  const [submitting, setSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt) return;
-    const {data: session} = await supabase.auth.getSession();
-    const userId = session.session?.user?.id;
-    if (!userId) return;
-    let conversationId = selectedConversationId;
-    if (!conversationId) {
-      const {data: conv, error: convErr} = await supabase
-        .from("chat_conversations")
-        .insert({owner_user_id: userId, name: "New Channel"})
-        .select("id")
-        .single();
-      if (convErr) return;
-      conversationId = conv?.id as string;
-      await refreshConversations();
-      setSelectedConversationId(conversationId);
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const {data: session} = await supabase.auth.getSession();
+      const userId = session.session?.user?.id;
+      if (!userId) throw new Error("Not authenticated");
+
+      let conversationId = selectedConversationId;
+      if (!conversationId) {
+        const {data: conv, error: convErr} = await supabase
+          .from("chat_conversations")
+          .insert({owner_user_id: userId, name: "New Channel"})
+          .select("id")
+          .single();
+        if (convErr) throw convErr;
+        conversationId = conv?.id as string;
+        await refreshConversations();
+        setSelectedConversationId(conversationId);
+      }
+
+      const {error: msgErr} = await supabase.from("chat_messages").insert({
+        conversation_id: conversationId,
+        author_user_id: userId,
+        role: "user",
+        content: prompt,
+      });
+      if (msgErr) throw msgErr;
+      setPrompt("");
+    } catch (err: any) {
+      console.error("Send message failed:", err);
+      setSubmitError(err?.message || "Failed to send message");
+    } finally {
+      setSubmitting(false);
     }
-    await supabase.from("chat_messages").insert({
-      conversation_id: conversationId,
-      author_user_id: userId,
-      role: "user",
-      content: prompt,
-    });
-    setPrompt("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -102,7 +116,8 @@ export default function Component() {
                 <Button
                   isIconOnly
                   color={!prompt ? "default" : "primary"}
-                  isDisabled={!prompt}
+                  isDisabled={!prompt || submitting}
+                  isLoading={submitting}
                   radius="lg"
                   size="sm"
                   variant="solid"
@@ -159,6 +174,9 @@ export default function Component() {
           </div>
           <p className="text-tiny text-default-400 py-1">{prompt.length}/2000</p>
         </div>
+        {submitError && (
+          <p className="text-tiny text-danger-500 px-4 pb-3">{submitError}</p>
+        )}
       </form>
     </div>
   );
