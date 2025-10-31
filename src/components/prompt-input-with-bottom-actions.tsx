@@ -35,31 +35,18 @@ export default function Component() {
       const userId = session.session?.user?.id;
       if (!userId) throw new Error("Not authenticated");
 
-      let conversationId = selectedConversationId;
-      if (!conversationId) {
-        const {data: conv, error: convErr} = await supabase
-          .from("chat_conversations")
-          .insert({owner_user_id: userId, name: "New Channel"})
-          .select("id")
-          .single();
-        if (convErr) throw convErr;
-        conversationId = conv?.id as string;
+      // Use RPC to atomically create conversation (if needed) and insert message
+      const {data, error: rpcErr} = await supabase.rpc("create_conversation_and_message", {
+        p_name: "New Channel",
+        p_content: prompt,
+        p_conversation_id: selectedConversationId,
+      });
+      if (rpcErr) throw rpcErr;
+      const newConversationId = (data as any)?.conversation_id as string | undefined;
+      if (newConversationId && newConversationId !== selectedConversationId) {
         await refreshConversations();
-        setSelectedConversationId(conversationId);
+        setSelectedConversationId(newConversationId);
       }
-
-      const {data: msgRow, error: msgErr} = await supabase
-        .from("chat_messages")
-        .insert({
-          conversation_id: conversationId,
-          author_user_id: userId,
-          role: "user",
-          content: prompt,
-        })
-        .select("id")
-        .single();
-      if (msgErr) throw msgErr;
-      if (!msgRow) throw new Error("Insert returned no row");
       setPrompt("");
     } catch (err: any) {
       console.error("Send message failed:", err);
@@ -72,19 +59,33 @@ export default function Component() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      // Submit the form programmatically
-      if (!selectedConversationId || !prompt) return;
+      // Submit via the same RPC so Enter works too
       (async () => {
-        const {data: session} = await supabase.auth.getSession();
-        const userId = session.session?.user?.id;
-        if (!userId) return;
-        await supabase.from("chat_messages").insert({
-          conversation_id: selectedConversationId,
-          author_user_id: userId,
-          role: "user",
-          content: prompt,
-        });
-        setPrompt("");
+        if (!prompt) return;
+        setSubmitError(null);
+        setSubmitting(true);
+        try {
+          const {data: session} = await supabase.auth.getSession();
+          const userId = session.session?.user?.id;
+          if (!userId) throw new Error("Not authenticated");
+          const {data, error: rpcErr} = await supabase.rpc("create_conversation_and_message", {
+            p_name: "New Channel",
+            p_content: prompt,
+            p_conversation_id: selectedConversationId,
+          });
+          if (rpcErr) throw rpcErr;
+          const newConversationId = (data as any)?.conversation_id as string | undefined;
+          if (newConversationId && newConversationId !== selectedConversationId) {
+            await refreshConversations();
+            setSelectedConversationId(newConversationId);
+          }
+          setPrompt("");
+        } catch (err: any) {
+          console.error("Send message (Enter) failed:", err);
+          setSubmitError(err?.message || "Failed to send message");
+        } finally {
+          setSubmitting(false);
+        }
       })();
     }
   };
