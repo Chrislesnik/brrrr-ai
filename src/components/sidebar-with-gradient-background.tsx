@@ -35,6 +35,8 @@ export default function Component({
 }) {
   const {isOpen, onOpen, onOpenChange} = useDisclosure();
   const {conversations, setSelectedConversationId, refreshConversations} = useChat();
+  const [creating, setCreating] = React.useState(false);
+  const [createError, setCreateError] = React.useState<string | null>(null);
 
   const getSidebarItems = React.useCallback(() => {
     return [
@@ -54,18 +56,30 @@ export default function Component({
   );
 
   const onCreateChannel = React.useCallback(async () => {
-    const name = "New Channel";
-    const {data: session} = await supabase.auth.getSession();
-    const userId = session.session?.user?.id;
-    if (!userId) return;
-    const {data, error} = await supabase
-      .from("chat_conversations")
-      .insert({owner_user_id: userId, name})
-      .select("id")
-      .single();
-    if (!error && data) {
-      await refreshConversations();
-      setSelectedConversationId(data.id);
+    setCreateError(null);
+    setCreating(true);
+    try {
+      const name = "New Channel";
+      const {data: session} = await supabase.auth.getSession();
+      const userId = session.session?.user?.id;
+      console.log("[channel] create start", {hasSession: !!session.session, userId});
+      if (!userId) throw new Error("Not authenticated");
+      const {data, error} = await supabase
+        .from("chat_conversations")
+        .insert({owner_user_id: userId, name})
+        .select("id")
+        .single();
+      if (error) throw error;
+      console.log("[channel] created", data);
+      if (data?.id) {
+        await refreshConversations();
+        setSelectedConversationId(data.id);
+      }
+    } catch (err: any) {
+      console.error("[channel] create failed", err);
+      setCreateError(err?.message || "Failed to create channel");
+    } finally {
+      setCreating(false);
     }
   }, [refreshConversations, setSelectedConversationId]);
 
@@ -114,10 +128,13 @@ export default function Component({
       </div>
 
       <div className="px-2 pt-4">
-        <Button size="sm" variant="flat" onPress={onCreateChannel}>
+        <Button size="sm" variant="flat" onPress={onCreateChannel} isDisabled={creating} isLoading={creating}>
           <Icon className="text-default-600" icon="solar:add-circle-line-duotone" width={20} />
           <span className="ml-1">New Channel</span>
         </Button>
+        {createError && (
+          <p className="text-tiny text-danger-500 mt-2 px-1">{createError}</p>
+        )}
       </div>
 
       <ScrollShadow className="-mr-6 h-full max-h-[60vh] py-4 pr-6">
