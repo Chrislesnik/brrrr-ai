@@ -7,10 +7,11 @@ import {supabase} from "../lib/supabase";
 
 export default function AuthPage() {
   const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [sent, setSent] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [inviteAccepted, setInviteAccepted] = React.useState(false);
+  const [mode, setMode] = React.useState<"signin" | "signup">("signin");
 
   // If there's an invite token and user becomes authenticated, accept it
   React.useEffect(() => {
@@ -53,30 +54,51 @@ export default function AuthPage() {
     setError(null);
     setLoading(true);
     try {
-      // Domain allowlist check
       const emailLower = email.trim().toLowerCase();
-      const {data: domains, error: domainsError} = await supabase
-        .from("allowed_email_domains")
-        .select("domain, allowed")
-        .eq("allowed", true);
-      if (domainsError) throw domainsError;
-      const isAllowed = (domains || []).some((d: any) =>
-        emailLower.endsWith(String(d.domain || "").toLowerCase()),
-      );
-      if (!isAllowed) {
-        throw new Error("Email domain is not allowed. Contact your administrator.");
-      }
+      if (!emailLower) throw new Error("Email is required");
+      if (!password) throw new Error("Password is required");
 
+      if (mode === "signup") {
+        // Optional: allowlist only on sign up
+        const {data: domains, error: domainsError} = await supabase
+          .from("allowed_email_domains")
+          .select("domain, allowed")
+          .eq("allowed", true);
+        if (domainsError) throw domainsError;
+        const isAllowed = (domains || []).some((d: any) =>
+          emailLower.endsWith(String(d.domain || "").toLowerCase()),
+        );
+        if (!isAllowed)
+          throw new Error("Email domain is not allowed. Contact your administrator.");
+        const {error: signUpErr} = await supabase.auth.signUp({email: emailLower, password});
+        if (signUpErr) throw signUpErr;
+      } else {
+        const {error: signInErr} = await supabase.auth.signInWithPassword({
+          email: emailLower,
+          password,
+        });
+        if (signInErr) throw signInErr;
+      }
+    } catch (err: any) {
+      setError(err?.message || "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setLoading(true);
+    try {
       const siteUrl = (import.meta.env.VITE_SITE_URL as string) || window.location.origin;
       const redirectTo = `${siteUrl}${window.location.pathname}${window.location.search}`;
-      const {error} = await supabase.auth.signInWithOtp({
-        email,
-        options: {emailRedirectTo: redirectTo},
+      const {error: oauthErr} = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {redirectTo},
       });
-      if (error) throw error;
-      setSent(true);
+      if (oauthErr) throw oauthErr;
     } catch (err: any) {
-      setError(err?.message || "Failed to send magic link");
+      setError(err?.message || "Google sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -86,10 +108,23 @@ export default function AuthPage() {
     <div className="h-dvh w-full flex items-center justify-center bg-content1">
       <div className="rounded-medium border-small border-divider bg-background shadow-medium w-full max-w-md p-6">
         <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
-          <h3 className="text-large font-semibold">Sign in to BRRRR</h3>
-          <p className="text-small text-default-600">
-            Sign in with your work email. Accounts require an invitation to join an organization.
-          </p>
+          <h3 className="text-large font-semibold">Welcome to BRRRR</h3>
+          <Button color="default" variant="bordered" onPress={handleGoogle} isDisabled={loading}>
+            Continue with Google
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="h-px w-full bg-default-200" />
+            <span className="text-tiny text-default-500">or use email</span>
+            <div className="h-px w-full bg-default-200" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant={mode === "signin" ? "solid" : "bordered"} onPress={() => setMode("signin")}>
+              Sign in
+            </Button>
+            <Button size="sm" variant={mode === "signup" ? "solid" : "bordered"} onPress={() => setMode("signup")}>
+              Create account
+            </Button>
+          </div>
           <Input
             type="email"
             label="Email"
@@ -97,14 +132,17 @@ export default function AuthPage() {
             onChange={(e) => setEmail(e.target.value)}
             isRequired
           />
+          <Input
+            type="password"
+            label="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            isRequired
+          />
           {error && <p className="text-tiny text-danger-500">{error}</p>}
-          {sent ? (
-            <p className="text-small text-success-600">Magic link sent. Check your inbox.</p>
-          ) : (
-            <Button color="primary" isLoading={loading} type="submit">
-              Send magic link
-            </Button>
-          )}
+          <Button color="primary" isLoading={loading} type="submit">
+            {mode === "signin" ? "Sign in" : "Create account"}
+          </Button>
           {inviteAccepted && (
             <p className="text-tiny text-success-600">Invitation accepted. You now have access.</p>
           )}
