@@ -56,6 +56,7 @@ export default function Component({
   );
 
   const onCreateChannel = React.useCallback(async () => {
+    console.log("[channel] click New Channel");
     setCreateError(null);
     setCreating(true);
     try {
@@ -128,7 +129,7 @@ export default function Component({
       </div>
 
       <div className="px-2 pt-4">
-        <Button size="sm" variant="flat" onPress={onCreateChannel} isDisabled={creating} isLoading={creating}>
+        <Button size="sm" variant="flat" onClick={onCreateChannel} onPress={onCreateChannel} isDisabled={creating} isLoading={creating}>
           <Icon className="text-default-600" icon="solar:add-circle-line-duotone" width={20} />
           <span className="ml-1">New Channel</span>
         </Button>
