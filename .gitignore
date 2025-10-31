@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+.vscode/
+.DS_Store
+.vite/
+.env
+.env.*
+node_modules
