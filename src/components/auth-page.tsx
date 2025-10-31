@@ -67,9 +67,11 @@ export default function AuthPage() {
         throw new Error("Email domain is not allowed. Contact your administrator.");
       }
 
+      const siteUrl = (import.meta.env.VITE_SITE_URL as string) || window.location.origin;
+      const redirectTo = `${siteUrl}${window.location.pathname}${window.location.search}`;
       const {error} = await supabase.auth.signInWithOtp({
         email,
-        options: {emailRedirectTo: window.location.origin},
+        options: {emailRedirectTo: redirectTo},
       });
       if (error) throw error;
       setSent(true);
