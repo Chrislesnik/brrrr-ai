@@ -42,7 +42,8 @@ export default function Component() {
         p_conversation_id: selectedConversationId,
       });
       if (rpcErr) throw rpcErr;
-      const newConversationId = (data as any)?.conversation_id as string | undefined;
+      const row = Array.isArray(data) ? (data[0] as any) : (data as any);
+      const newConversationId = row?.conversation_id as string | undefined;
       if (newConversationId && newConversationId !== selectedConversationId) {
         await refreshConversations();
         setSelectedConversationId(newConversationId);
@@ -74,7 +75,8 @@ export default function Component() {
             p_conversation_id: selectedConversationId,
           });
           if (rpcErr) throw rpcErr;
-          const newConversationId = (data as any)?.conversation_id as string | undefined;
+          const row = Array.isArray(data) ? (data[0] as any) : (data as any);
+          const newConversationId = row?.conversation_id as string | undefined;
           if (newConversationId && newConversationId !== selectedConversationId) {
             await refreshConversations();
             setSelectedConversationId(newConversationId);
