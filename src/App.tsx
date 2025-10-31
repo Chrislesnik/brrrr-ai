@@ -7,6 +7,7 @@ import {ChatProvider} from "./components/chat-context";
 export default function App() {
   const [loading, setLoading] = React.useState(true);
   const [isAuthed, setIsAuthed] = React.useState(false);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
 
   // Handle Supabase email magic link / OAuth callback by exchanging the code for a session
   React.useEffect(() => {
@@ -37,21 +38,32 @@ export default function App() {
 
   React.useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(async ({data}) => {
-      if (!mounted) return;
-      setIsAuthed(!!data.session);
-      // Ensure chat_users row exists for authed users
-      const user = data.session?.user;
-      if (user) {
-        await supabase.from("chat_users").upsert({id: user.id, email: user.email ?? ""}, {onConflict: "id"});
+    (async () => {
+      try {
+        const {data} = await supabase.auth.getSession();
+        if (!mounted) return;
+        setIsAuthed(!!data.session);
+        const user = data.session?.user;
+        if (user) {
+          await supabase
+            .from("chat_users")
+            .upsert({id: user.id, email: user.email ?? ""}, {onConflict: "id"});
+        }
+      } catch (err: any) {
+        console.error("Failed to initialize auth session:", err);
+        setLoadError(err?.message || "Failed to initialize session");
+      } finally {
+        if (mounted) setLoading(false);
       }
-      setLoading(false);
-    });
+    })();
+
     const {data: sub} = supabase.auth.onAuthStateChange(async (_event, session) => {
       setIsAuthed(!!session);
       const u = session?.user;
       if (u) {
-        await supabase.from("chat_users").upsert({id: u.id, email: u.email ?? ""}, {onConflict: "id"});
+        await supabase
+          .from("chat_users")
+          .upsert({id: u.id, email: u.email ?? ""}, {onConflict: "id"});
       }
     });
     return () => {
@@ -60,7 +72,20 @@ export default function App() {
     };
   }, []);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-default-500">
+        Loading…
+      </div>
+    );
+  }
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-danger-500">
+        {loadError}
+      </div>
+    );
+  }
 
   return isAuthed ? (
     <ChatProvider>
