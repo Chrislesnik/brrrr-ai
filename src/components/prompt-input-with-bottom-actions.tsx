@@ -31,28 +31,36 @@ export default function Component() {
     setSubmitError(null);
     setSubmitting(true);
     try {
+      console.log("[send] submit start", {prompt, selectedConversationId});
       const {data: session} = await supabase.auth.getSession();
       const userId = session.session?.user?.id;
+      console.log("[send] session", {hasSession: !!session.session, userId});
       if (!userId) throw new Error("Not authenticated");
 
       // Use RPC to atomically create conversation (if needed) and insert message
-      const {data, error: rpcErr} = await supabase.rpc("create_conversation_and_message", {
+      const payload = {
         p_name: "New Channel",
         p_content: prompt,
         p_conversation_id: selectedConversationId,
+      } as const;
+      console.log("[send] calling RPC create_conversation_and_message", payload);
+      const {data, error: rpcErr} = await supabase.rpc("create_conversation_and_message", {
+        ...payload,
       });
       if (rpcErr) throw rpcErr;
       const row = Array.isArray(data) ? (data[0] as any) : (data as any);
       const newConversationId = row?.conversation_id as string | undefined;
+      console.log("[send] RPC response", {row, newConversationId});
       if (newConversationId && newConversationId !== selectedConversationId) {
         await refreshConversations();
         setSelectedConversationId(newConversationId);
       }
       setPrompt("");
     } catch (err: any) {
-      console.error("Send message failed:", err);
+      console.error("[send] failed", err);
       setSubmitError(err?.message || "Failed to send message");
     } finally {
+      console.log("[send] submit done");
       setSubmitting(false);
     }
   };
@@ -66,8 +74,10 @@ export default function Component() {
         setSubmitError(null);
         setSubmitting(true);
         try {
+          console.log("[send:enter] submit start", {prompt, selectedConversationId});
           const {data: session} = await supabase.auth.getSession();
           const userId = session.session?.user?.id;
+          console.log("[send:enter] session", {hasSession: !!session.session, userId});
           if (!userId) throw new Error("Not authenticated");
           const {data, error: rpcErr} = await supabase.rpc("create_conversation_and_message", {
             p_name: "New Channel",
@@ -77,15 +87,17 @@ export default function Component() {
           if (rpcErr) throw rpcErr;
           const row = Array.isArray(data) ? (data[0] as any) : (data as any);
           const newConversationId = row?.conversation_id as string | undefined;
+          console.log("[send:enter] RPC response", {row, newConversationId});
           if (newConversationId && newConversationId !== selectedConversationId) {
             await refreshConversations();
             setSelectedConversationId(newConversationId);
           }
           setPrompt("");
         } catch (err: any) {
-          console.error("Send message (Enter) failed:", err);
+          console.error("[send:enter] failed", err);
           setSubmitError(err?.message || "Failed to send message");
         } finally {
+          console.log("[send:enter] submit done");
           setSubmitting(false);
         }
       })();
